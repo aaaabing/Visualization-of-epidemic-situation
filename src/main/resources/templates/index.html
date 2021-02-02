@@ -1,0 +1,331 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>疫情地图展示</title>
+  <style>
+    #myEcharts {
+      width: 800px;
+      height: 500px;
+      border: solid 1px red;
+      margin: 0 auto;
+    }
+  </style>
+  <!--引入导航栏的css-->
+  <link rel="stylesheet" href="../static/css/pattern.css">
+  <!-- 引入 echarts.js -->
+  <script src="https://cdn.staticfile.org/echarts/4.3.0/echarts.min.js"></script>
+  <!--引入中国的地图数据js文件，引入后会自动注册地图名字和数据-->
+  <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js?v=1598903772045"></script>
+  <script src="../static/js/province/guangdong.js"></script>
+  <script src="../static/js/province/anhui.js"></script>
+  <script src="../static/js/province/aomen.js"></script>
+  <script src="../static/js/province/beijing.js"></script>
+  <script src="../static/js/province/chongqing.js"></script>
+  <script src="../static/js/province/fujian.js"></script>
+  <script src="../static/js/province/gansu.js"></script>
+  <script src="../static/js/province/guangxi.js"></script>
+  <script src="../static/js/province/guizhou.js"></script>
+  <script src="../static/js/province/hainan.js"></script>
+  <script src="../static/js/province/hebei.js"></script>
+  <script src="../static/js/province/heilongjiang.js"></script>
+  <script src="../static/js/province/henan.js"></script>
+  <script src="../static/js/province/hubei.js"></script>
+  <script src="../static/js/province/jiangsu.js"></script>
+  <script src="../static/js/province/jiangxi.js"></script>
+  <script src="../static/js/province/jilin.js"></script>
+  <script src="../static/js/province/liaoning.js"></script>
+  <script src="../static/js/province/neimenggu.js"></script>
+  <script src="../static/js/province/ningxia.js"></script>
+  <script src="../static/js/province/qinghai.js"></script>
+  <script src="../static/js/province/shandong.js"></script>
+  <script src="../static/js/province/shanghai.js"></script>
+  <script src="../static/js/province/shanxi.js"></script>
+  <script src="../static/js/province/shanxi1.js"></script>
+  <script src="../static/js/province/sichuan.js"></script>
+  <script src="../static/js/province/taiwan.js"></script>
+  <script src="../static/js/province/tianjin.js"></script>
+  <script src="../static/js/province/xianggang.js"></script>
+  <script src="../static/js/province/xinjiang.js"></script>
+  <script src="../static/js/province/xizang.js"></script>
+  <script src="../static/js/province/yunnan.js"></script>
+  <script src="../static/js/province/zhejiang.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2/dist/jquery.min.js"></script>
+
+</head>
+
+<body background="../static/pic/bac.jpg">
+<!--为echarts准备一个dom容器-->
+<div id="my">
+  <ul>
+    <li value="1">今日疫情</li>
+    <li value="2">累计疫情</li>
+    <li class="slider"></li>
+  </ul>
+</div>
+  <div id="myEcharts"></div>
+  <script>
+    //初始化echarts实例
+    function drawMap(darwMapType, data) {
+      var option = {
+        backgroundColor: '#BDBDBD',
+        title: {
+          text: '实时疫情',
+          x: 'center'
+        },
+        tooltip: {
+          trigger: 'item'
+        },
+        visualMap: {
+          type: 'piecewise',
+          pieces: [
+            { min: 1000, max: 1000000, label: '大于等于1000人', color: '#372a28' },
+            { min: 500, max: 999, label: '确诊500-999人', color: '#4e160f' },
+            { min: 100, max: 499, label: '确诊100-499人', color: '#974236' },
+            { min: 10, max: 99, label: '确诊10-99人', color: '#ee7263' },
+            { min: 1, max: 9, label: '确诊1-9人', color: '#f5bba7' },
+          ],
+          color: ['#E0022B', '#E09107', '#A3E00B']
+        },
+        series: [{
+          name: '今日疫情',
+          type: 'map',
+          mapType: darwMapType,
+          roam: true,
+          label: {
+            normal: {
+              show: false
+            },
+            emphasis: {
+              show: false
+            }
+          },
+          data: data
+        }]
+      };
+
+      echarts.dispose(document.getElementById('myEcharts'));//先去掉原来的地图
+      var chart = echarts.init(document.getElementById('myEcharts'));
+      chart.setOption(option);
+
+      chart.on("dblclick", function(param) {
+
+        $.ajax({
+        url:"/requestCityData",
+        type:"POST",
+        data:JSON.stringify(param.name),
+        contentType:"application/json;charset=UTF-8",
+        dataType:"JSON",
+        success:function (jsonobj) {
+          console.log(jsonobj)
+          drawMap(param.name,jsonobj);
+        }
+      })
+
+    });
+    }
+    $.ajax({
+      url:"/requestProvinceData",
+      type:"POST",
+      contentType:"application/json;charset=UTF-8",
+      dataType:"JSON",
+      success:function (jsonobj) {
+        drawMap("china",JSON.parse(JSON.stringify(jsonobj)));
+      //初始化是就绘制今日的疫情地图
+        },
+    })
+
+    $(function() {
+      $("ul li").click(function(e) {
+
+        if ($(this).hasClass('slider')) {
+          return;
+        }
+
+        var whatTab = $(this).index();
+
+        var howFar = 320 * whatTab;
+
+        $(".slider").css({
+          left: howFar + "px"
+        });
+
+        $(".ripple").remove();
+
+        var posX = $(this).offset().left,
+                posY = $(this).offset().top,
+                buttonWidth = $(this).width(),
+                buttonHeight = $(this).height();
+
+        $(this).append("<span class='ripple'></span>");
+
+        if (buttonWidth >= buttonHeight) {
+          buttonHeight = buttonWidth;
+        } else {
+          buttonWidth = buttonHeight;
+        }
+
+        var x = e.pageX - posX - buttonWidth / 2;
+        var y = e.pageY - posY - buttonHeight / 2;
+
+        $(".ripple").css({
+          width: buttonWidth,
+          height: buttonHeight,
+          top: y + 'px',
+          left: x + 'px'
+        }).addClass("rippleEffect");
+        //获取当前想要查看的疫情情况
+        var value=$(this).val();
+        if (value==1)
+        {
+          function drawMap1(darwMapType, data) {
+            var option = {
+              backgroundColor: '#BDBDBD',
+              title: {
+                text: '实时疫情',
+                x: 'center'
+              },
+              tooltip: {
+                trigger: 'item'
+              },
+              visualMap: {
+                type: 'piecewise',
+                pieces: [
+                  { min: 1000, max: 1000000, label: '大于等于1000人', color: '#372a28' },
+                  { min: 500, max: 999, label: '确诊500-999人', color: '#4e160f' },
+                  { min: 100, max: 499, label: '确诊100-499人', color: '#974236' },
+                  { min: 10, max: 99, label: '确诊10-99人', color: '#ee7263' },
+                  { min: 1, max: 9, label: '确诊1-9人', color: '#f5bba7' },
+                ],
+                color: ['#E0022B', '#E09107', '#A3E00B']
+              },
+              series: [{
+                name: '今日疫情',
+                type: 'map',
+                mapType: darwMapType,
+                roam: true,
+                label: {
+                  normal: {
+                    show: false
+                  },
+                  emphasis: {
+                    show: false
+                  }
+                },
+                data: data
+              }]
+            };
+
+            echarts.dispose(document.getElementById('myEcharts'));//先去掉原来的地图
+            var chart = echarts.init(document.getElementById('myEcharts'));
+            chart.setOption(option);
+
+            chart.on("dblclick", function(param) {
+
+              $.ajax({
+                url:"/requestCityData",
+                type:"POST",
+                data:JSON.stringify(param.name),
+                contentType:"application/json;charset=UTF-8",
+                dataType:"JSON",
+                success:function (jsonobj) {
+                  console.log(jsonobj)
+                  drawMap1(param.name,jsonobj);
+                }
+              })
+
+            });
+          }
+          $.ajax({
+            url:"/requestProvinceData",
+            type:"POST",
+            contentType:"application/json;charset=UTF-8",
+            dataType:"JSON",
+            success:function (jsonobj) {
+              drawMap1("china",JSON.parse(JSON.stringify(jsonobj)));
+              //初始化是就绘制今日的疫情地图
+            },
+          })
+        }
+        else
+        {
+          function drawMap2(darwMapType, data) {
+            var option = {
+              backgroundColor: '#BDBDBD',
+              title: {
+                text: '累计疫情',
+                x: 'center'
+              },
+              tooltip: {
+                trigger: 'item'
+              },
+              visualMap: {
+                type: 'piecewise',
+                pieces: [
+                  { min: 10000, max: 1000000, label: '大于等于10000人', color: '#372a28' },
+                  { min: 5000, max: 9999, label: '确诊5000-9999人', color: '#4e160f' },
+                  { min: 1000, max: 4999, label: '确诊1000-4999人', color: '#974236' },
+                  { min: 100, max: 999, label: '确诊100-999人', color: '#ee7263' },
+                  { min: 1, max: 99, label: '确诊1-99人', color: '#f5bba7' },
+                ],
+                color: ['#E0022B', '#E09107', '#A3E00B']
+              },
+              series: [{
+                name: '累计疫情',
+                type: 'map',
+                mapType: darwMapType,
+                roam: true,
+                label: {
+                  normal: {
+                    show: false
+                  },
+                  emphasis: {
+                    show: false
+                  }
+                },
+                data: data
+              }]
+            };
+
+            echarts.dispose(document.getElementById('myEcharts'));//先去掉原来的地图
+            var chart = echarts.init(document.getElementById('myEcharts'));
+            chart.setOption(option);
+
+            chart.on("dblclick", function(param) {
+
+              $.ajax({
+                url:"/requestTotalCityData",
+                type:"POST",
+                data:JSON.stringify(param.name),
+                contentType:"application/json;charset=UTF-8",
+                dataType:"JSON",
+                success:function (jsonobj) {
+                  console.log(jsonobj)
+                  drawMap2(param.name,jsonobj);
+                }
+              })
+
+            });
+          }
+          $.ajax({
+            url:"/requestTotalData",
+            type:"POST",
+            contentType:"application/json;charset=UTF-8",
+            dataType:"JSON",
+            success:function (jsonobj) {
+              drawMap2("china",JSON.parse(JSON.stringify(jsonobj)));
+              //跳转
+            },
+          })
+        }
+      });
+
+    });
+
+
+
+  </script>
+
+</body>
+
+</html>
